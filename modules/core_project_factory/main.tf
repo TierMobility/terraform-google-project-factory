@@ -44,7 +44,7 @@ locals {
   )
   activate_apis          = var.impersonate_service_account != "" ? concat(var.activate_apis, ["iamcredentials.googleapis.com"]) : var.activate_apis
   api_s_account_fmt      = format("serviceAccount:%s", local.api_s_account)
-  gke_shared_vpc_enabled = var.shared_vpc != "" && contains(local.activate_apis, "container.googleapis.com") ? "true" : "false"
+  gke_shared_vpc_enabled = var.shared_vpc_enabled && contains(var.activate_apis, "container.googleapis.com")
   gke_s_account = format(
     "service-%s@container-engine-robot.iam.gserviceaccount.com",
     google_project.main.number,
@@ -175,7 +175,7 @@ resource "google_project_services" "project_services_authority" {
   Shared VPC configuration
  *****************************************/
 resource "google_compute_shared_vpc_service_project" "shared_vpc_attachment" {
-  count = var.shared_vpc != "" ? 1 : 0
+  count = var.shared_vpc_enabled != "" ? 1 : 0
 
   host_project = var.shared_vpc
   service_project = google_project.main.project_id
@@ -299,7 +299,7 @@ resource "google_service_account_iam_member" "service_account_grant_to_group" {
   Account on shared VPC
  *****************************************************************************************************************/
 resource "google_project_iam_member" "controlling_group_vpc_membership" {
-  count = var.shared_vpc != "" && length(compact(var.shared_vpc_subnets)) == 0 ? local.shared_vpc_users_length : 0
+  count = var.shared_vpc_enabled && length(compact(var.shared_vpc_subnets)) == 0 ? local.shared_vpc_users_length : 0
 
   project = var.shared_vpc
   role = "roles/compute.networkUser"
@@ -317,7 +317,7 @@ resource "google_project_iam_member" "controlling_group_vpc_membership" {
 resource "google_compute_subnetwork_iam_member" "service_account_role_to_vpc_subnets" {
   provider = google-beta
 
-  count = var.shared_vpc != "" && length(compact(var.shared_vpc_subnets)) > 0 ? length(var.shared_vpc_subnets) : 0
+  count = var.shared_vpc_enabled && length(compact(var.shared_vpc_subnets)) > 0 ? length(var.shared_vpc_subnets) : 0
 
   subnetwork = element(
     split("/", var.shared_vpc_subnets[count.index]),
@@ -341,7 +341,7 @@ resource "google_compute_subnetwork_iam_member" "service_account_role_to_vpc_sub
 resource "google_compute_subnetwork_iam_member" "group_role_to_vpc_subnets" {
   provider = google-beta
 
-  count = var.shared_vpc != "" && length(compact(var.shared_vpc_subnets)) > 0 && var.manage_group ? length(var.shared_vpc_subnets) : 0
+  count = var.shared_vpc_enabled != "" && length(compact(var.shared_vpc_subnets)) > 0 && var.manage_group ? length(var.shared_vpc_subnets) : 0
 
   subnetwork = element(
     split("/", var.shared_vpc_subnets[count.index]),
@@ -365,7 +365,7 @@ resource "google_compute_subnetwork_iam_member" "group_role_to_vpc_subnets" {
 resource "google_compute_subnetwork_iam_member" "apis_service_account_role_to_vpc_subnets" {
   provider = google-beta
 
-  count = var.shared_vpc != "" && length(compact(var.shared_vpc_subnets)) > 0 ? length(var.shared_vpc_subnets) : 0
+  count = var.shared_vpc_enabled && length(compact(var.shared_vpc_subnets)) > 0 ? length(var.shared_vpc_subnets) : 0
 
   subnetwork = element(
     split("/", var.shared_vpc_subnets[count.index]),

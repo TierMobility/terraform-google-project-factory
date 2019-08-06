@@ -58,6 +58,12 @@ variable "shared_vpc" {
   default     = ""
 }
 
+variable "shared_vpc_enabled" {
+  description = "If shared VPC should be used"
+  type        = bool
+  default     = false
+}
+
 variable "billing_account" {
   description = "The ID of the billing account to associate this project with"
 }
